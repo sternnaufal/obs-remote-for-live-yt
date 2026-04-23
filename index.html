@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS Remote + To-Do</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            padding: 16px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .card {
+            background: #2a2a2a;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .card h3 {
+            color: white;
+            margin-bottom: 12px;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            color: white;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: gray;
+            display: inline-block;
+        }
+        .status-dot.connected {
+            background: #22c55e;
+        }
+        .connection-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .connection-row input {
+            flex: 1;
+            padding: 10px;
+            background: #1a1a1a;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            color: white;
+        }
+        .btn-connect {
+            padding: 10px 20px;
+            background: #3b82f6;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .scene-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .scene-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .scene-btn:active {
+            transform: scale(0.97);
+        }
+        .add-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .add-row input {
+            flex: 1;
+            padding: 10px;
+            background: #1a1a1a;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            color: white;
+        }
+        .add-row button {
+            padding: 10px 16px;
+            background: #22c55e;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .todo-item {
+            background: #1a1a1a;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .todo-item.completed {
+            opacity: 0.5;
+        }
+        .todo-checkbox {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+        }
+        .todo-text {
+            flex: 1;
+            color: white;
+            font-size: 14px;
+        }
+        .todo-text.completed {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+        .delete-todo {
+            background: #ef4444;
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .save-hint {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 11px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- OBS REMOTE -->
+        <div class="card">
+            <h3>🎬 OBS Remote Control</h3>
+            <div class="status-bar">
+                <span>Status:</span>
+                <span><span id="statusDot" class="status-dot"></span> <span id="statusText">Belum konek</span></span>
+            </div>
+            <div class="connection-row">
+                <input type="text" id="obsIp" placeholder="IP OBS" value="192.168.0.8">
+                <input type="number" id="obsPort" placeholder="Port" value="4455">
+                <button class="btn-connect" onclick="connectOBS()">Konek</button>
+            </div>
+            <div class="scene-buttons">
+                <button class="scene-btn" onclick="gantiScene('Tanpa Kamera')">🎥 Tanpa Kamera</button>
+                <button class="scene-btn" onclick="gantiScene('Pakai Kamera')">📷 Pakai Kamera</button>
+                <button class="scene-btn" onclick="gantiScene('Spinwheel')">🎡 Spinwheel</button>
+                <button class="scene-btn" onclick="gantiScene('B-Roll')">🎬 B-Roll</button>
+                <button class="scene-btn" onclick="gantiScene('Screen')">🖥️ Screen</button>
+                <button class="scene-btn" onclick="gantiScene('Ending')">🏁 Ending</button>
+            </div>
+        </div>
+
+        <!-- TO-DO EDITOR -->
+        <div class="card">
+            <h3>📝 To-Do List Editor (Tampil di OBS)</h3>
+            <div class="add-row">
+                <input type="text" id="todoInput" placeholder="Tugas baru...">
+                <button onclick="addTodo()">+ Tambah</button>
+            </div>
+            <div id="todoList"></div>
+            <div class="save-hint" id="saveStatus">✅ Otomatis tersimpan</div>
+        </div>
+    </div>
+
+    <script>
+        // ========== WEBSOCKET LANGSUNG (TANPA LIBRARY) ==========
+        let ws = null;
+        let connected = false;
+
+        async function connectOBS() {
+            const ip = document.getElementById('obsIp').value;
+            const port = document.getElementById('obsPort').value;
+            const url = `ws://${ip}:${port}`;
+            
+            try {
+                ws = new WebSocket(url);
+                
+                ws.onopen = () => {
+                    connected = true;
+                    document.getElementById('statusDot').className = 'status-dot connected';
+                    document.getElementById('statusText').textContent = 'Terkoneksi';
+                    
+                    // Kirim identifikasi setelah konek
+                    setTimeout(() => {
+                        ws.send(JSON.stringify({
+                            "request-type": "GetVersion",
+                            "message-id": "1"
+                        }));
+                    }, 100);
+                    
+                    alert('✅ Berhasil konek ke OBS!');
+                };
+                
+                ws.onerror = (error) => {
+                    connected = false;
+                    document.getElementById('statusDot').className = 'status-dot';
+                    document.getElementById('statusText').textContent = 'Gagal konek';
+                    alert('❌ Gagal konek ke OBS. Cek IP dan port.');
+                };
+                
+                ws.onclose = () => {
+                    connected = false;
+                    document.getElementById('statusDot').className = 'status-dot';
+                    document.getElementById('statusText').textContent = 'Terputus';
+                };
+                
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        async function gantiScene(namaScene) {
+            if (!connected || !ws || ws.readyState !== WebSocket.OPEN) {
+                alert('⚠️ Konek OBS dulu!');
+                return;
+            }
+            
+            const message = {
+                "request-type": "SetCurrentProgramScene",
+                "scene-name": namaScene,
+                "message-id": Date.now().toString()
+            };
+            
+            ws.send(JSON.stringify(message));
+            alert(`✅ Ganti scene ke: ${namaScene}`);
+        }
+
+        // ========== TO-DO LIST ==========
+        let todos = [];
+
+        async function loadTodos() {
+            try {
+                const response = await fetch('todo-data.json?t=' + Date.now());
+                todos = await response.json();
+                renderTodos();
+            } catch (error) {
+                todos = [
+                    { text: 'Cek microphone', completed: false },
+                    { text: 'Siapkan slide', completed: false },
+                    { text: 'Opening speech', completed: false }
+                ];
+                renderTodos();
+                saveTodos();
+            }
+        }
+
+        async function saveTodos() {
+            try {
+                await fetch('save-todo.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(todos)
+                });
+                document.getElementById('saveStatus').style.color = '#22c55e';
+                document.getElementById('saveStatus').textContent = '✅ Tersimpan!';
+                setTimeout(() => {
+                    document.getElementById('saveStatus').style.color = '#6b7280';
+                    document.getElementById('saveStatus').textContent = '✅ Otomatis tersimpan';
+                }, 2000);
+            } catch (error) {
+                console.error('Gagal simpan:', error);
+            }
+        }
+
+        function renderTodos() {
+            const container = document.getElementById('todoList');
+            if (todos.length === 0) {
+                container.innerHTML = '<div style="color: #6b7280; text-align: center; padding: 20px;">📭 Belum ada tugas</div>';
+                return;
+            }
+            container.innerHTML = '';
+            todos.forEach((todo, index) => {
+                const div = document.createElement('div');
+                div.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+                div.innerHTML = `
+                    <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} onchange="toggleComplete(${index})">
+                    <span class="todo-text ${todo.completed ? 'completed' : ''}">${escapeHtml(todo.text)}</span>
+                    <button class="delete-todo" onclick="deleteTodo(${index})">Hapus</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function addTodo() {
+            const input = document.getElementById('todoInput');
+            const text = input.value.trim();
+            if (text) {
+                todos.push({ text: text, completed: false });
+                input.value = '';
+                renderTodos();
+                saveTodos();
+            }
+        }
+
+        function deleteTodo(index) {
+            todos.splice(index, 1);
+            renderTodos();
+            saveTodos();
+        }
+
+        function toggleComplete(index) {
+            todos[index].completed = !todos[index].completed;
+            renderTodos();
+            saveTodos();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load
+        loadTodos();
+    </script>
+</body>
+</html>
