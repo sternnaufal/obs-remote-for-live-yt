@@ -44,6 +44,7 @@
         }
         .status-dot.connected {
             background: #22c55e;
+            box-shadow: 0 0 8px #22c55e;
         }
         .connection-row {
             display: flex;
@@ -83,6 +84,11 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
+            transition: all 0.2s;
+        }
+        .scene-btn.active {
+            background: #22c55e;
+            box-shadow: 0 0 10px #22c55e;
         }
         .scene-btn:active {
             transform: scale(0.97);
@@ -101,9 +107,37 @@
             cursor: pointer;
         }
         .btn-mic { background: #f59e0b; color: white; }
+        .btn-stream { background: #9333ea; color: white; }
         .btn-record { background: #ef4444; color: white; }
         .btn-source { background: #8b5cf6; color: white; }
         .btn-replay { background: #ec489a; color: white; }
+        
+        .volume-container {
+            margin-top: 16px;
+            background: #1a1a1a;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #3a3a3a;
+        }
+        .volume-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            color: white;
+            font-size: 14px;
+        }
+        .volume-row:last-child {
+            margin-bottom: 0;
+        }
+        .volume-row span {
+            width: 70px;
+        }
+        .volume-row input[type="range"] {
+            flex: 1;
+            cursor: pointer;
+        }
+
         .text-overlay {
             display: flex;
             gap: 8px;
@@ -214,7 +248,7 @@
             border-color: #3a3a3a;
             margin: 12px 0;
         }
-        button:disabled {
+        button:disabled, input:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
@@ -234,6 +268,9 @@
                 <input type="password" id="obsPassword" placeholder="Password (kosongkan jika tidak ada)">
                 <button class="btn-connect" onclick="connectOBS()">Konek</button>
             </div>
+            <div class="connection-row" style="margin-top: -4px;">
+                <input type="text" id="obsCameraName" placeholder="Nama Source Kamera di OBS" value="Video Capture Device">
+            </div>
             
             <div class="scene-buttons" id="sceneButtons">
                 <div style="color: gray; text-align: center; grid-column: span 2;">🔌 Konek dulu</div>
@@ -243,9 +280,21 @@
             
             <div class="feature-buttons">
                 <button class="feature-btn btn-mic" onclick="toggleMute()" id="micBtn" disabled>🎤 Mute Mic</button>
+                <button class="feature-btn btn-stream" onclick="toggleStreaming()" id="streamBtn" disabled>📡 Start Stream</button>
                 <button class="feature-btn btn-record" onclick="toggleRecording()" id="recordBtn" disabled>⏺️ Start Record</button>
                 <button class="feature-btn btn-source" onclick="toggleWebcam()" id="webcamBtn" disabled>📷 Sembunyi Kamera</button>
                 <button class="feature-btn btn-replay" onclick="replayBuffer()" id="replayBtn" disabled>🔄 Replay</button>
+            </div>
+
+            <div class="volume-container">
+                <div class="volume-row">
+                    <span>Desktop:</span>
+                    <input type="range" id="volDesktop" min="0" max="1" step="0.01" value="1" disabled oninput="ubahVolume('Desktop Audio', this.value)">
+                </div>
+                <div class="volume-row">
+                    <span>Mic/Aux:</span>
+                    <input type="range" id="volMic" min="0" max="1" step="0.01" value="1" disabled oninput="ubahVolume('Mic/Aux', this.value)">
+                </div>
             </div>
             
             <div class="text-overlay">
@@ -270,10 +319,15 @@
         let connected = false;
         let requestId = 0;
         let scenesList = [];
+        let currentSceneName = "";
         
         let isMuted = false;
         let isRecording = false;
+        let isStreaming = false;
         let isWebcamHidden = false;
+        let webcamItemId = null;
+
+        const pendingRequests = new Map();
 
         function showToast(pesan, jenis = 'success') {
             const toast = document.createElement('div');
@@ -283,29 +337,34 @@
             setTimeout(() => toast.remove(), 2000);
         }
 
-        function enableButtons(enable) {
-            const btns = ['micBtn', 'recordBtn', 'webcamBtn', 'replayBtn', 'gantiTeksBtn'];
+        function enableControls(enable) {
+            const btns = ['micBtn', 'streamBtn', 'recordBtn', 'webcamBtn', 'replayBtn', 'gantiTeksBtn', 'volDesktop', 'volMic'];
             btns.forEach(id => {
-                const btn = document.getElementById(id);
-                if (btn) btn.disabled = !enable;
+                const el = document.getElementById(id);
+                if (el) el.disabled = !enable;
             });
         }
 
         function sendRequest(requestType, requestData = {}) {
-            if (!ws || ws.readyState !== WebSocket.OPEN) {
-                return false;
-            }
-            
-            const msg = {
-                "op": 6,
-                "d": {
-                    "requestId": (++requestId).toString(),
-                    "requestType": requestType,
-                    "requestData": requestData
+            return new Promise((resolve, reject) => {
+                if (!ws || ws.readyState !== WebSocket.OPEN) {
+                    reject(new Error("Belum terkoneksi ke OBS"));
+                    return;
                 }
-            };
-            ws.send(JSON.stringify(msg));
-            return true;
+                
+                const id = (++requestId).toString();
+                pendingRequests.set(id, { resolve, reject });
+                
+                const msg = {
+                    "op": 6,
+                    "d": {
+                        "requestId": id,
+                        "requestType": requestType,
+                        "requestData": requestData
+                    }
+                };
+                ws.send(JSON.stringify(msg));
+            });
         }
 
         async function connectOBS() {
@@ -318,7 +377,6 @@
                 ws = new WebSocket(url);
                 
                 ws.onopen = () => {
-                    // Kirim identifikasi (op 1)
                     const identifyMsg = {
                         "op": 1,
                         "d": {
@@ -329,31 +387,36 @@
                     ws.send(JSON.stringify(identifyMsg));
                 };
                 
-                ws.onmessage = (event) => {
+                ws.onmessage = async (event) => {
                     try {
                         const data = JSON.parse(event.data);
-                        console.log("Received:", data);
                         
                         if (data.op === 2) {
-                            // Identifikasi berhasil
                             connected = true;
                             document.getElementById('statusDot').className = 'status-dot connected';
                             document.getElementById('statusText').textContent = 'Terkoneksi';
-                            enableButtons(true);
+                            enableControls(true);
                             showToast('✅ Berhasil konek ke OBS!', 'success');
                             
-                            // Ambil daftar scene
-                            sendRequest("GetSceneList");
+                            await syncInitialState();
                         }
-                        else if (data.op === 7 && data.d?.requestType === "GetSceneList") {
-                            // Daftar scene
-                            if (data.d.responseData?.scenes) {
-                                scenesList = data.d.responseData.scenes;
-                                renderSceneButtons();
+                        else if (data.op === 7) {
+                            const id = data.d?.requestId;
+                            if (id && pendingRequests.has(id)) {
+                                const p = pendingRequests.get(id);
+                                if (data.d.requestStatus.result) {
+                                    p.resolve(data.d.responseData);
+                                } else {
+                                    p.reject(data.d.requestStatus);
+                                }
+                                pendingRequests.delete(id);
                             }
                         }
+                        else if (data.op === 5) { // Events
+                            handleOBSEvent(data.d.eventType, data.d.eventData);
+                        }
                     } catch(e) {
-                        console.log("Bukan JSON:", event.data);
+                        console.error("Error processing message:", e);
                     }
                 };
                 
@@ -361,7 +424,7 @@
                     connected = false;
                     document.getElementById('statusDot').className = 'status-dot';
                     document.getElementById('statusText').textContent = 'Gagal konek';
-                    enableButtons(false);
+                    enableControls(false);
                     showToast('❌ Gagal konek ke OBS', 'error');
                 };
                 
@@ -369,11 +432,84 @@
                     connected = false;
                     document.getElementById('statusDot').className = 'status-dot';
                     document.getElementById('statusText').textContent = 'Terputus';
-                    enableButtons(false);
+                    enableControls(false);
                 };
                 
             } catch (error) {
                 showToast('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function syncInitialState() {
+            try {
+                // Get scenes
+                const scenesData = await sendRequest("GetSceneList");
+                scenesList = scenesData.scenes;
+                currentSceneName = scenesData.currentProgramSceneName;
+                renderSceneButtons();
+
+                // Get Record status
+                const recordStatus = await sendRequest("GetRecordStatus");
+                isRecording = recordStatus.outputActive;
+                updateRecordButton();
+
+                // Get Stream status
+                const streamStatus = await sendRequest("GetStreamStatus");
+                isStreaming = streamStatus.outputActive;
+                updateStreamButton();
+
+                // Get Mic status
+                try {
+                    const micStatus = await sendRequest("GetInputMute", { "inputName": "Mic/Aux" });
+                    isMuted = micStatus.inputMuted;
+                    updateMicButton();
+                    
+                    const micVol = await sendRequest("GetInputVolume", { "inputName": "Mic/Aux" });
+                    document.getElementById('volMic').value = micVol.inputVolumeMul;
+                } catch (e) { console.log("Mic/Aux tidak ditemukan"); }
+
+                // Get Desktop Audio volume
+                try {
+                    const deskVol = await sendRequest("GetInputVolume", { "inputName": "Desktop Audio" });
+                    document.getElementById('volDesktop').value = deskVol.inputVolumeMul;
+                } catch (e) { console.log("Desktop Audio tidak ditemukan"); }
+                
+                // Get Camera status in current scene
+                await checkCameraStatus();
+
+            } catch (err) {
+                console.error("Error saat sync data awal:", err);
+            }
+        }
+
+        function handleOBSEvent(eventType, eventData) {
+            if (eventType === "CurrentProgramSceneChanged") {
+                currentSceneName = eventData.sceneName;
+                renderSceneButtons(); // re-render to update highlight
+                checkCameraStatus();  // re-check camera state in new scene
+            } else if (eventType === "RecordStateChanged") {
+                isRecording = eventData.outputActive;
+                updateRecordButton();
+            } else if (eventType === "StreamStateChanged") {
+                isStreaming = eventData.outputActive;
+                updateStreamButton();
+            } else if (eventType === "InputMuteStateChanged") {
+                if (eventData.inputName === "Mic/Aux") {
+                    isMuted = eventData.inputMuted;
+                    updateMicButton();
+                }
+            } else if (eventType === "InputVolumeChanged") {
+                if (eventData.inputName === "Desktop Audio") {
+                    document.getElementById('volDesktop').value = eventData.inputVolumeMul;
+                } else if (eventData.inputName === "Mic/Aux") {
+                    document.getElementById('volMic').value = eventData.inputVolumeMul;
+                }
+            } else if (eventType === "SceneItemEnableStateChanged") {
+                // Sync webcam button if changed from outside
+                if (eventData.sceneName === currentSceneName && eventData.sceneItemId === webcamItemId) {
+                    isWebcamHidden = !eventData.sceneItemEnabled;
+                    updateWebcamButton();
+                }
             }
         }
 
@@ -387,108 +523,171 @@
             container.innerHTML = '';
             scenesList.forEach(scene => {
                 const btn = document.createElement('button');
-                btn.className = 'scene-btn';
+                btn.className = `scene-btn ${scene.sceneName === currentSceneName ? 'active' : ''}`;
                 btn.textContent = scene.sceneName;
                 btn.onclick = () => gantiScene(scene.sceneName);
                 container.appendChild(btn);
             });
         }
 
-        function gantiScene(sceneName) {
-            if (!connected) {
-                showToast('⚠️ Konek OBS dulu!', 'warning');
-                return;
-            }
-            
-            if (sendRequest("SetCurrentProgramScene", { "sceneName": sceneName })) {
-                showToast(`✅ Ganti scene ke: ${sceneName}`, 'success');
-            } else {
+        async function gantiScene(sceneName) {
+            if (!connected) return;
+            try {
+                await sendRequest("SetCurrentProgramScene", { "sceneName": sceneName });
+            } catch (err) {
                 showToast(`❌ Gagal ganti scene`, 'error');
             }
         }
 
-        function toggleMute() {
+        async function toggleMute() {
             if (!connected) return;
-            
-            isMuted = !isMuted;
-            if (sendRequest("SetInputMute", { "inputName": "Mic/Aux", "inputMuted": isMuted })) {
-                const btn = document.getElementById('micBtn');
-                if (isMuted) {
-                    btn.innerHTML = '🔇 Unmute Mic';
-                    btn.style.background = '#ef4444';
-                    showToast('🔇 Mic dimute', 'success');
-                } else {
-                    btn.innerHTML = '🎤 Mute Mic';
-                    btn.style.background = '#f59e0b';
-                    showToast('🎤 Mic unmute', 'success');
-                }
+            try {
+                await sendRequest("ToggleInputMute", { "inputName": "Mic/Aux" });
+            } catch(e) {
+                showToast('❌ Gagal mengubah Mic', 'error');
             }
         }
 
-        function toggleRecording() {
-            if (!connected) return;
-            
-            if (!isRecording) {
-                if (sendRequest("StartRecord")) {
-                    isRecording = true;
-                    const btn = document.getElementById('recordBtn');
-                    btn.innerHTML = '⏹️ Stop Record';
-                    btn.style.background = '#dc2626';
-                    showToast('⏺️ Rekaman dimulai', 'success');
-                }
+        function updateMicButton() {
+            const btn = document.getElementById('micBtn');
+            if (isMuted) {
+                btn.innerHTML = '🔇 Unmute Mic';
+                btn.style.background = '#ef4444';
             } else {
-                if (sendRequest("StopRecord")) {
-                    isRecording = false;
-                    const btn = document.getElementById('recordBtn');
-                    btn.innerHTML = '⏺️ Start Record';
-                    btn.style.background = '#ef4444';
-                    showToast('⏹️ Rekaman berhenti', 'success');
-                }
+                btn.innerHTML = '🎤 Mute Mic';
+                btn.style.background = '#f59e0b';
             }
         }
 
-        function toggleWebcam() {
+        async function toggleStreaming() {
             if (!connected) return;
+            try {
+                await sendRequest("ToggleStream");
+            } catch(e) {
+                showToast('❌ Gagal mengubah Streaming', 'error');
+            }
+        }
+
+        function updateStreamButton() {
+            const btn = document.getElementById('streamBtn');
+            if (isStreaming) {
+                btn.innerHTML = '🛑 Stop Stream';
+                btn.style.background = '#dc2626';
+            } else {
+                btn.innerHTML = '📡 Start Stream';
+                btn.style.background = '#9333ea';
+            }
+        }
+
+        async function toggleRecording() {
+            if (!connected) return;
+            try {
+                await sendRequest("ToggleRecord");
+            } catch(e) {
+                showToast('❌ Gagal mengubah Rekaman', 'error');
+            }
+        }
+
+        function updateRecordButton() {
+            const btn = document.getElementById('recordBtn');
+            if (isRecording) {
+                btn.innerHTML = '⏹️ Stop Record';
+                btn.style.background = '#dc2626';
+            } else {
+                btn.innerHTML = '⏺️ Start Record';
+                btn.style.background = '#ef4444';
+            }
+        }
+
+        async function checkCameraStatus() {
+            const camName = document.getElementById('obsCameraName').value;
+            try {
+                const data = await sendRequest("GetSceneItemList", { "sceneName": currentSceneName });
+                const camItem = data.sceneItems.find(item => item.sourceName === camName);
+                
+                if (camItem) {
+                    webcamItemId = camItem.sceneItemId;
+                    isWebcamHidden = !camItem.sceneItemEnabled;
+                    updateWebcamButton();
+                } else {
+                    webcamItemId = null;
+                }
+            } catch (e) { console.log("Gagal cek kamera"); }
+        }
+
+        async function toggleWebcam() {
+            if (!connected) return;
+            const camName = document.getElementById('obsCameraName').value;
             
-            isWebcamHidden = !isWebcamHidden;
-            // Kirim request untuk cari scene item id
-            sendRequest("GetSceneItemList", { "sceneName": "Current" });
-            
+            try {
+                if (webcamItemId === null) {
+                    await checkCameraStatus();
+                }
+                
+                if (webcamItemId !== null) {
+                    const newState = isWebcamHidden; // If hidden (true), set enabled (true)
+                    await sendRequest("SetSceneItemEnabled", {
+                        "sceneName": currentSceneName,
+                        "sceneItemId": webcamItemId,
+                        "sceneItemEnabled": newState
+                    });
+                } else {
+                    showToast(`⚠️ Kamera "${camName}" tidak ditemukan di scene ini!`, 'warning');
+                }
+            } catch(e) {
+                showToast('❌ Gagal mengatur kamera', 'error');
+            }
+        }
+
+        function updateWebcamButton() {
             const btn = document.getElementById('webcamBtn');
             if (isWebcamHidden) {
                 btn.innerHTML = '📷 Tampil Kamera';
                 btn.style.background = '#22c55e';
-                showToast('📷 Webcam disembunyikan', 'success');
             } else {
                 btn.innerHTML = '📷 Sembunyi Kamera';
                 btn.style.background = '#8b5cf6';
-                showToast('📷 Webcam ditampilkan', 'success');
             }
         }
 
-        function replayBuffer() {
+        async function ubahVolume(inputName, value) {
             if (!connected) return;
-            
-            if (sendRequest("SaveReplayBuffer")) {
+            try {
+                await sendRequest("SetInputVolume", {
+                    "inputName": inputName,
+                    "inputVolumeMul": parseFloat(value)
+                });
+            } catch(e) {
+                console.log("Gagal ubah volume", e);
+            }
+        }
+
+        async function replayBuffer() {
+            if (!connected) return;
+            try {
+                await sendRequest("SaveReplayBuffer");
                 showToast('🔄 Replay saved!', 'success');
+            } catch(e) {
+                showToast('❌ Gagal save replay', 'error');
             }
         }
 
-        function gantiTeks() {
+        async function gantiTeks() {
             if (!connected) return;
-            
             const teks = document.getElementById('teksOverlay').value;
             if (!teks) {
                 showToast('⚠️ Masukkan teks dulu', 'warning');
                 return;
             }
-            
-            if (sendRequest("SetInputSettings", {
-                "inputName": "TeksOverlay",
-                "inputSettings": { "text": teks }
-            })) {
+            try {
+                await sendRequest("SetInputSettings", {
+                    "inputName": "TeksOverlay",
+                    "inputSettings": { "text": teks }
+                });
                 showToast(`📝 Teks diganti: ${teks}`, 'success');
                 document.getElementById('teksOverlay').value = '';
+            } catch(e) {
+                showToast('❌ Gagal ganti teks', 'error');
             }
         }
 
