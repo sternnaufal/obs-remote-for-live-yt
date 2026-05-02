@@ -2,67 +2,126 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>To-Do Display</title>
+    <title>RemOBS Overlay - To-Do</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #3b82f6;
+            --success: #10b981;
+            --bg-glass: rgba(15, 23, 42, 0.85);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
-            background: rgba(0,0,0,0.7);
-            font-family: 'Segoe UI', Arial, sans-serif;
-            padding: 15px;
-            color: white;
-        }
-        .todo-item {
-            background: rgba(255,255,255,0.1);
-            padding: 10px 12px;
-            margin-bottom: 6px;
-            border-radius: 6px;
-            border-left: 3px solid #3b82f6;
-            font-size: 14px;
-        }
-        .todo-item.completed {
-            opacity: 0.5;
-            text-decoration: line-through;
-            border-left-color: #22c55e;
-        }
-        .empty {
-            text-align: center;
-            color: gray;
+            background: transparent;
+            font-family: 'Inter', sans-serif;
             padding: 20px;
+            color: white;
+            overflow: hidden;
+        }
+
+        #todoList {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 350px;
+        }
+
+        .todo-item {
+            background: var(--bg-glass);
+            backdrop-filter: blur(8px);
+            padding: 12px 16px;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+            border-top: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.4s ease-out;
+            transition: all 0.3s ease;
+        }
+
+        .todo-item.completed {
+            opacity: 0.6;
+            border-left-color: var(--success);
+            transform: translateX(10px);
+        }
+
+        .todo-item.completed .text {
+            text-decoration: line-through;
+            color: #94a3b8;
+        }
+
+        .check {
+            margin-right: 12px;
+            font-size: 18px;
+            color: var(--primary);
+        }
+
+        .completed .check {
+            color: var(--success);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-50px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .empty {
+            font-style: italic;
+            color: rgba(255,255,255,0.4);
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
-    <div id="todoList">Loading...</div>
+    <div id="todoList"></div>
     <script>
+        let lastJson = "";
         async function load() {
             try {
                 const res = await fetch('todo-data.json?t=' + Date.now());
-                const todos = await res.json();
+                const text = await res.text();
+                if (text === lastJson) return;
+                lastJson = text;
+                
+                const todos = JSON.parse(text);
                 const container = document.getElementById('todoList');
+                
                 if (!todos.length) {
-                    container.innerHTML = '<div class="empty">📝 No tasks</div>';
+                    container.innerHTML = '<div class="empty">No tasks active</div>';
                     return;
                 }
+
                 container.innerHTML = todos.map((t, i) => `
                     <div class="todo-item ${t.completed ? 'completed' : ''}">
-                        ${i+1}. ${escapeHtml(t.text)}
+                        <span class="check">${t.completed ? '✓' : '○'}</span>
+                        <span class="text">${escapeHtml(t.text)}</span>
                     </div>
                 `).join('');
             } catch(e) {
-                document.getElementById('todoList').innerHTML = '<div class="empty">Error loading</div>';
+                console.error("Load error", e);
             }
         }
+
         function escapeHtml(t) {
             const div = document.createElement('div');
             div.textContent = t;
             return div.innerHTML;
         }
+
         load();
-        setInterval(load, 1000);
+        setInterval(load, 1500);
     </script>
 </body>
 </html>
