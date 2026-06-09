@@ -79,7 +79,7 @@
 
         .empty {
             font-style: italic;
-            color: rgba(255,255,255,0.4);
+            color: rgba(255, 255, 255, 0.4);
             font-size: 14px;
         }
     </style>
@@ -94,32 +94,25 @@
                 const text = await res.text();
                 if (text === lastJson) return;
                 lastJson = text;
-                
                 const todos = JSON.parse(text);
                 const container = document.getElementById('todoList');
-                
                 if (!todos.length) {
                     container.innerHTML = '<div class="empty">No tasks active</div>';
                     return;
                 }
-
                 container.innerHTML = todos.map((t, i) => `
                     <div class="todo-item ${t.completed ? 'completed' : ''}">
                         <span class="check">${t.completed ? '✓' : '○'}</span>
                         <span class="text">${escapeHtml(t.text)}</span>
                     </div>
                 `).join('');
-            } catch(e) {
-                console.error("Load error", e);
-            }
+            } catch (e) { console.error('Load error', e); }
         }
-
         function escapeHtml(t) {
             const div = document.createElement('div');
             div.textContent = t;
             return div.innerHTML;
         }
-
         load();
         setInterval(load, 1500);
     </script>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -27,14 +28,12 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Inter', sans-serif;
             background: var(--bg);
-            background-image: 
-                radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+            background-image: radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
             color: var(--text);
             min-height: 100vh;
-            padding: 16px;
+            padding: 12px;
             padding-bottom: 40px;
         }
 
@@ -43,21 +42,154 @@
             margin: 0 auto;
         }
 
-        /* Header & Status */
-        .header {
+        .preview-container {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #000;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        #scenePreview {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: opacity 0.3s;
+        }
+
+        .preview-label {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            backdrop-filter: blur(4px);
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+            margin-bottom: 12px;
+            font-weight: 700;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
         }
 
-        .header h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            letter-spacing: -0.025em;
-            background: linear-gradient(to right, #60a5fa, #a78bfa);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .transition-select {
+            width: 100%;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 10px;
+            border-radius: 12px;
+            outline: none;
+            margin-bottom: 12px;
+            font-family: inherit;
+        }
+
+        .source-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .source-item {
+            background: var(--glass);
+            padding: 10px 14px;
+            border-radius: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border);
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .source-item.active {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #334155;
+            transition: .3s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--primary);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(16px);
+        }
+
+        .media-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .media-btn {
+            flex: 1;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
         }
 
         .status-badge {
@@ -65,95 +197,34 @@
             align-items: center;
             gap: 8px;
             background: var(--glass);
-            padding: 6px 12px;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            font-size: 0.8rem;
-            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
         }
 
         .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             background: #475569;
         }
 
         .status-dot.connected {
             background: var(--success);
-            box-shadow: 0 0 10px var(--success);
+            box-shadow: 0 0 8px var(--success);
         }
 
-        /* Card System */
-        .card {
-            background: var(--card-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-radius: 24px;
-            padding: 20px;
-            border: 1px solid var(--border);
-            margin-bottom: 20px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-        }
-
-        .card-title {
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-dim);
-            margin-bottom: 16px;
-            font-weight: 700;
-        }
-
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 16px;
         }
 
-        .stat-item {
-            background: var(--glass);
-            padding: 12px;
-            border-radius: 16px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.1rem;
-            font-weight: 700;
-            display: block;
-        }
-
-        .stat-label {
-            font-size: 0.65rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-        }
-
-        /* Connection Inputs */
-        .input-group {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-
-        input {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--border);
-            padding: 12px;
-            border-radius: 12px;
-            color: white;
-            font-family: inherit;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        input:focus {
-            border-color: var(--primary);
+        .header h1 {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--primary);
         }
 
         .btn {
@@ -163,150 +234,115 @@
             font-weight: 700;
             cursor: pointer;
             transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
             font-family: inherit;
         }
 
-        .btn:active {
-            transform: scale(0.96);
+        .btn-primary {
+            background: var(--primary);
+            color: white;
         }
 
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-success { background: var(--success); color: white; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-warning { background: var(--warning); color: white; }
-
-        /* Scene Grid */
         .scene-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            gap: 8px;
         }
 
         .scene-btn {
             background: var(--glass);
             border: 1px solid var(--border);
-            padding: 16px;
-            border-radius: 16px;
+            padding: 12px;
+            border-radius: 12px;
             color: var(--text-dim);
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
             text-align: left;
-            position: relative;
-            overflow: hidden;
         }
 
         .scene-btn.active {
             background: var(--primary);
             color: white;
             border-color: transparent;
-            box-shadow: 0 8px 16px -4px rgba(59, 130, 246, 0.5);
         }
 
-        .scene-btn.active::after {
-            content: '●';
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 0.6rem;
-        }
-
-        /* Action Buttons */
         .action-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            gap: 8px;
         }
 
         .control-btn {
-            padding: 14px;
-            border-radius: 16px;
+            padding: 12px;
+            border-radius: 14px;
             border: 1px solid var(--border);
             background: var(--glass);
             color: white;
             font-weight: 600;
-            font-size: 0.85rem;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
+            font-size: 0.75rem;
         }
 
         .control-btn.active {
-            border-color: transparent;
-        }
-
-        /* Volume Sliders */
-        .volume-section {
-            margin-top: 8px;
+            background: var(--danger);
         }
 
         .volume-row {
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
 
         .volume-label {
             display: flex;
             justify-content: space-between;
-            font-size: 0.75rem;
-            margin-bottom: 8px;
+            font-size: 0.7rem;
+            margin-bottom: 4px;
             color: var(--text-dim);
         }
 
         input[type="range"] {
             -webkit-appearance: none;
+            width: 100%;
             background: rgba(255, 255, 255, 0.1);
-            height: 6px;
-            border-radius: 3px;
-            padding: 0;
-            border: none;
+            height: 4px;
+            border-radius: 2px;
         }
 
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             background: white;
             border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
 
-        /* To-Do List */
+        .meter-container {
+            width: 100%;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 2px;
+            margin-top: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .meter-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, #10b981, #f59e0b, #ef4444);
+            transition: width 0.1s ease-out;
+        }
+
         .todo-item {
             background: var(--glass);
-            padding: 14px;
-            border-radius: 16px;
-            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 12px;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
             border: 1px solid var(--border);
-        }
-
-        .todo-item.completed {
-            opacity: 0.5;
-        }
-
-        .todo-text {
-            flex: 1;
-            font-size: 0.9rem;
-        }
-
-        .todo-text.completed {
-            text-decoration: line-through;
-        }
-
-        .btn-icon {
-            width: 32px;
-            height: 32px;
-            padding: 0;
-            border-radius: 8px;
         }
 
         .toast {
@@ -314,135 +350,126 @@
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            padding: 12px 24px;
-            border-radius: 12px;
+            padding: 10px 20px;
+            border-radius: 10px;
             color: white;
             font-weight: 700;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             z-index: 1000;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
             animation: slideDown 0.3s ease;
         }
 
         @keyframes slideDown {
-            from { transform: translate(-50%, -100%); opacity: 0; }
-            to { transform: translate(-50%, 0); opacity: 1; }
+            from {
+                transform: translate(-50%, -100%);
+            }
+            to {
+                transform: translate(-50%, 0);
+            }
         }
 
-        hr { border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
-
-        .hidden { display: none; }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <!-- Header -->
         <div class="header">
-            <h1>RemOBS</h1>
+            <h1>RemOBS <span style="font-weight:400; color:var(--text-dim); font-size:0.7rem;">v2.0</span></h1>
             <div class="status-badge">
                 <div id="statusDot" class="status-dot"></div>
-                <span id="statusText">Disconnected</span>
+                <span id="statusText">Offline</span>
             </div>
         </div>
 
-        <!-- Connection Card -->
-        <div class="card" id="connectionCard">
-            <div class="card-title">Setup Connection</div>
-            <div class="input-group">
-                <input type="text" id="obsIp" placeholder="IP Address" value="192.168.0.8">
-                <input type="number" id="obsPort" placeholder="Port" value="4455">
-            </div>
-            <input type="password" id="obsPassword" placeholder="Password (Optional)" style="margin-bottom: 12px;">
-            <button class="btn btn-primary" onclick="connectOBS()" id="connectBtn" style="width: 100%;">Connect to OBS</button>
+        <div class="preview-container">
+            <div class="preview-label">Live Preview</div>
+            <img id="scenePreview"
+                src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+                alt="Preview">
+            <div id="noConn"
+                style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--text-dim); font-size:0.8rem;">
+                No connection</div>
         </div>
 
-        <!-- Dashboard Stats -->
-        <div class="card" id="statsCard">
-            <div class="card-title">Live Stats</div>
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <span class="stat-value" id="statFps">0</span>
-                    <span class="stat-label">FPS</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-value" id="statCpu">0%</span>
-                    <span class="stat-label">CPU</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-value" id="statBitrate">0</span>
-                    <span class="stat-label">kbps</span>
-                </div>
+        <div class="card" id="connUI">
+            <div class="card-title">Connection</div>
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+                <input type="text" id="obsIp" value="192.168.0.8"
+                    style="flex:2; padding:8px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,0.2); color:white;">
+                <input type="number" id="obsPort" value="4455"
+                    style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,0.2); color:white;">
+            </div>
+            <button class="btn btn-primary" onclick="connectOBS()" id="connectBtn" style="width:100%;">Connect</button>
+        </div>
+
+        <div class="card hidden" id="advancedCard">
+            <div class="card-title">Transition</div>
+            <select id="transSelect" class="transition-select" onchange="changeTransition(this.value)">
+                <option>Loading...</option>
+            </select>
+
+            <div class="card-title">Media Controls</div>
+            <div class="media-controls">
+                <button class="media-btn" onclick="mediaAction('restart')">⏮</button>
+                <button class="media-btn" onclick="mediaAction('play_pause')">⏯</button>
+                <button class="media-btn" onclick="mediaAction('stop')">⏹</button>
             </div>
         </div>
 
-        <!-- Scenes Card -->
+        <div class="card hidden" id="sourcesCard">
+            <div class="card-title">Scene Sources <span id="sourceCount" style="font-size:0.6rem;">0 detected</span>
+            </div>
+            <div class="source-list" id="sourceList"></div>
+        </div>
+
         <div class="card">
-            <div class="card-title">Active Scenes</div>
-            <div class="scene-grid" id="sceneButtons">
-                <div style="color: var(--text-dim); text-align: center; grid-column: span 2; padding: 20px;">
-                    Connect to load scenes
-                </div>
-            </div>
+            <div class="card-title">Scenes</div>
+            <div class="scene-grid" id="sceneButtons"></div>
         </div>
 
-        <!-- Controls Card -->
         <div class="card">
-            <div class="card-title">Quick Controls</div>
+            <div class="card-title">Status Controls</div>
             <div class="action-grid">
-                <button class="control-btn" id="streamBtn" onclick="toggleStreaming()" disabled>
-                    <span class="icon">📡</span>
-                    <span id="streamLabel">Start Stream</span>
-                </button>
-                <button class="control-btn" id="recordBtn" onclick="toggleRecording()" disabled>
-                    <span class="icon">⏺️</span>
-                    <span id="recordLabel">Start Record</span>
-                </button>
-                <button class="control-btn" id="micBtn" onclick="toggleMute()" disabled>
-                    <span class="icon">🎤</span>
-                    <span id="micLabel">Mute Mic</span>
-                </button>
-                <button class="control-btn" id="webcamBtn" onclick="toggleWebcam()" disabled>
-                    <span class="icon">📷</span>
-                    <span id="webcamLabel">Hide Cam</span>
-                </button>
+                <button class="control-btn" id="streamBtn" onclick="toggleStreaming()">📡 <span
+                        id="streamLabel">Stream</span></button>
+                <button class="control-btn" id="recordBtn" onclick="toggleRecording()">⏺ <span
+                        id="recordLabel">Record</span></button>
+                <button class="control-btn" id="micBtn" onclick="toggleMute()">🎤 <span
+                        id="micLabel">Mute</span></button>
+                <button class="control-btn" onclick="sendRequest('SaveReplayBuffer')">🔄 Replay</button>
             </div>
 
-            <hr>
-
-            <div class="volume-section">
+            <div style="margin-top:16px;">
                 <div class="volume-row">
-                    <div class="volume-label">
-                        <span>Desktop Audio</span>
-                        <span id="volDesktopVal">100%</span>
+                    <div class="volume-label"><span>Desktop</span> <span id="v1">100%</span></div>
+                    <input type="range" id="volDesktop" min="0" max="1" step="0.01" value="1"
+                        oninput="ubahVolume('Desktop Audio', this.value)">
+                    <div class="meter-container">
+                        <div id="meter-Desktop-Audio" class="meter-bar"></div>
                     </div>
-                    <input type="range" id="volDesktop" min="0" max="1" step="0.01" value="1" disabled oninput="ubahVolume('Desktop Audio', this.value)">
                 </div>
                 <div class="volume-row">
-                    <div class="volume-label">
-                        <span>Mic/Aux</span>
-                        <span id="volMicVal">100%</span>
+                    <div class="volume-label"><span>Mic/Aux</span> <span id="v2">100%</span></div>
+                    <input type="range" id="volMic" min="0" max="1" step="0.01" value="1"
+                        oninput="ubahVolume('Mic/Aux', this.value)">
+                    <div class="meter-container">
+                        <div id="meter-Mic-Aux" class="meter-bar"></div>
                     </div>
-                    <input type="range" id="volMic" min="0" max="1" step="0.01" value="1" disabled oninput="ubahVolume('Mic/Aux', this.value)">
                 </div>
-            </div>
-
-            <div class="input-group" style="margin-top: 10px;">
-                <input type="text" id="teksOverlay" placeholder="Update overlay text...">
-                <button class="btn btn-primary" onclick="gantiTeks()" id="gantiTeksBtn" disabled>Update</button>
             </div>
         </div>
 
-        <!-- To-Do Editor -->
         <div class="card">
-            <div class="card-title">Stream To-Do List</div>
-            <div class="input-group" style="margin-bottom: 16px;">
-                <input type="text" id="todoInput" placeholder="Add new task...">
-                <button class="btn btn-success" onclick="addTodo()" style="padding: 0 20px;">+</button>
+            <div class="card-title">To-Do Editor</div>
+            <div style="display:flex; gap:8px; margin-bottom:12px;">
+                <input type="text" id="todoInput" placeholder="Add..."
+                    style="flex:1; background:rgba(0,0,0,0.2); border:1px solid var(--border); padding:8px; border-radius:8px; color:white;">
+                <button class="btn btn-primary" onclick="addTodo()" style="padding:8px 16px;">+</button>
             </div>
             <div id="todoList"></div>
-            <div style="text-align: center; font-size: 0.7rem; color: var(--text-dim);" id="saveStatus">
-                Autosaved to todo-data.json
-            </div>
         </div>
     </div>
 
@@ -450,274 +477,251 @@
         let ws = null;
         let connected = false;
         let requestId = 0;
-        let scenesList = [];
+        let previewInterval = null;
         let currentSceneName = "";
-        let statsInterval = null;
-        
         const pendingRequests = new Map();
 
-        function showToast(pesan, jenis = 'success') {
-            const toast = document.createElement('div');
-            toast.textContent = pesan;
-            toast.className = 'toast';
-            toast.style.background = jenis === 'success' ? 'var(--success)' : 'var(--danger)';
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2500);
+        function showToast(m, type = 'success') {
+            if (navigator.vibrate) navigator.vibrate(20);
+            const t = document.createElement('div');
+            t.textContent = m;
+            t.className = 'toast';
+            t.style.background = type === 'success' ? 'var(--success)' : 'var(--danger)';
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 2000);
         }
 
-        function setBtnState(id, isActive, activeColor = 'var(--danger)') {
-            const btn = document.getElementById(id);
-            if (!btn) return;
-            if (isActive) {
-                btn.classList.add('active');
-                btn.style.background = activeColor;
-            } else {
-                btn.classList.remove('active');
-                btn.style.background = 'var(--glass)';
-            }
-        }
-
-        function enableControls(enable) {
-            const ids = ['streamBtn', 'recordBtn', 'micBtn', 'webcamBtn', 'volDesktop', 'volMic', 'gantiTeksBtn'];
-            ids.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.disabled = !enable;
-            });
-            document.getElementById('connectBtn').textContent = enable ? 'Disconnect' : 'Connect to OBS';
-            document.getElementById('connectBtn').className = enable ? 'btn btn-danger' : 'btn btn-primary';
-            document.getElementById('connectBtn').onclick = enable ? disconnectOBS : connectOBS;
-        }
-
-        function sendRequest(requestType, requestData = {}) {
+        function sendRequest(type, data = {}) {
             return new Promise((resolve, reject) => {
-                if (!ws || ws.readyState !== WebSocket.OPEN) {
-                    reject(new Error("Not connected"));
-                    return;
-                }
+                if (!ws || ws.readyState !== WebSocket.OPEN) return reject("Not connected");
                 const id = (++requestId).toString();
                 pendingRequests.set(id, { resolve, reject });
                 ws.send(JSON.stringify({
                     "op": 6,
-                    "d": { "requestId": id, "requestType": requestType, "requestData": requestData }
+                    "d": { "requestId": id, "requestType": type, "requestData": data }
                 }));
             });
+        }
+
+        function parseConfig() {
+            const password = document.getElementById('password')?.value || '';
+            const cameraName = document.getElementById('cameraName')?.value || 'Video Capture Device';
+            return { password, cameraName };
         }
 
         async function connectOBS() {
             const ip = document.getElementById('obsIp').value;
             const port = document.getElementById('obsPort').value;
-            const password = document.getElementById('obsPassword').value;
-            
-            showToast('Connecting...', 'success');
-            
             try {
                 ws = new WebSocket(`ws://${ip}:${port}`);
-                
                 ws.onopen = () => {
+                    const eventSubscriptions = (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4) | (1 << 5) | (1 << 6) | (1 << 7) | (1 << 8) | (1 << 9) | (1 << 16);
                     ws.send(JSON.stringify({
                         "op": 1,
-                        "d": { "rpcVersion": 1, "authentication": password ? { "challenge": "", "salt": "" } : undefined }
+                        "d": {
+                            "rpcVersion": 1,
+                            "eventSubscriptions": eventSubscriptions
+                        }
                     }));
                 };
-                
-                ws.onmessage = async (event) => {
-                    const data = JSON.parse(event.data);
-                    
-                    if (data.op === 2) { // Identified
+                ws.onmessage = async (e) => {
+                    const data = JSON.parse(e.data);
+                    if (data.op === 2) {
                         connected = true;
                         document.getElementById('statusDot').className = 'status-dot connected';
-                        document.getElementById('statusText').textContent = 'Connected';
-                        enableControls(true);
-                        showToast('✅ Connected to OBS', 'success');
-                        await syncInitialState();
-                        startStats();
-                    }
-                    else if (data.op === 7) { // Response
-                        const id = data.d?.requestId;
-                        if (id && pendingRequests.has(id)) {
-                            const p = pendingRequests.get(id);
-                            data.d.requestStatus.result ? p.resolve(data.d.responseData) : p.reject(data.d.requestStatus);
-                            pendingRequests.delete(id);
+                        document.getElementById('statusText').textContent = 'Live';
+                        document.getElementById('connUI').classList.add('hidden');
+                        document.getElementById('sourcesCard').classList.remove('hidden');
+                        document.getElementById('advancedCard').classList.remove('hidden');
+                        document.getElementById('noConn').classList.add('hidden');
+                        showToast('Connected!');
+                        await syncState();
+                        startPreview();
+                    } else if (data.op === 7) {
+                        const p = pendingRequests.get(data.d.requestId);
+                        if (p) {
+                            data.d.requestStatus.result ? p.resolve(data.d.responseData) : p.reject();
+                            pendingRequests.delete(data.d.requestId);
                         }
-                    }
-                    else if (data.op === 5) { // Event
-                        handleOBSEvent(data.d.eventType, data.d.eventData);
+                    } else if (data.op === 5) {
+                        handleEvent(data.d.eventType, data.d.eventData);
                     }
                 };
-                
-                ws.onclose = () => {
-                    connected = false;
-                    document.getElementById('statusDot').className = 'status-dot';
-                    document.getElementById('statusText').textContent = 'Disconnected';
-                    enableControls(false);
-                    stopStats();
-                };
-                
-            } catch (error) {
-                showToast('❌ Connection Error', 'error');
+                ws.onclose = () => { connected = false; stopPreview(); location.reload(); };
+            } catch (err) { showToast('Connection failed', 'error'); }
+        }
+
+        async function syncState() {
+            const scenes = await sendRequest("GetSceneList");
+            renderScenes(scenes.scenes, scenes.currentProgramSceneName);
+            await loadSources(scenes.currentProgramSceneName);
+
+            const trans = await sendRequest("GetSceneTransitionList");
+            renderTransitions(trans.transitions, trans.currentSceneTransitionName);
+
+            const stream = await sendRequest("GetStreamStatus");
+            updateUI('streamBtn', stream.outputActive, 'Stream');
+            const record = await sendRequest("GetRecordStatus");
+            updateUI('recordBtn', record.outputActive, 'Record');
+        }
+
+        function handleEvent(type, data) {
+            switch (type) {
+                case "CurrentProgramSceneChanged":
+                    renderScenes(null, data.sceneName);
+                    loadSources(data.sceneName);
+                    break;
+                case "SceneItemEnableStateChanged":
+                    loadSources(data.sceneName);
+                    break;
+                case "RecordStateChanged":
+                    updateUI('recordBtn', data.outputActive, 'Record');
+                    break;
+                case "StreamStateChanged":
+                    updateUI('streamBtn', data.outputActive, 'Stream');
+                    break;
+                case "InputVolumeMeters":
+                    data.inputs.forEach(input => {
+                        const meterId = `meter-${input.inputName.replace(/\s+/g, '-')}`;
+                        const el = document.getElementById(meterId);
+                        if (el) {
+                            const level = input.inputLevelsMul[0][0] * 100;
+                            el.style.width = Math.min(level, 100) + '%';
+                        }
+                    });
+                    break;
             }
         }
 
-        function disconnectOBS() {
-            if (ws) ws.close();
-        }
-
-        async function syncInitialState() {
-            try {
-                const scenes = await sendRequest("GetSceneList");
-                scenesList = scenes.scenes;
-                currentSceneName = scenes.currentProgramSceneName;
-                renderSceneButtons();
-
-                const record = await sendRequest("GetRecordStatus");
-                updateRecordUI(record.outputActive);
-
-                const stream = await sendRequest("GetStreamStatus");
-                updateStreamUI(stream.outputActive);
-
-                try {
-                    const mic = await sendRequest("GetInputMute", { "inputName": "Mic/Aux" });
-                    updateMicUI(mic.inputMuted);
-                    const micVol = await sendRequest("GetInputVolume", { "inputName": "Mic/Aux" });
-                    document.getElementById('volMic').value = micVol.inputVolumeMul;
-                    document.getElementById('volMicVal').textContent = Math.round(micVol.inputVolumeMul * 100) + '%';
-                } catch(e) {}
-
-                try {
-                    const deskVol = await sendRequest("GetInputVolume", { "inputName": "Desktop Audio" });
-                    document.getElementById('volDesktop').value = deskVol.inputVolumeMul;
-                    document.getElementById('volDesktopVal').textContent = Math.round(deskVol.inputVolumeMul * 100) + '%';
-                } catch(e) {}
-
-            } catch (err) { console.error(err); }
-        }
-
-        function handleOBSEvent(type, data) {
-            if (type === "CurrentProgramSceneChanged") {
-                currentSceneName = data.sceneName;
-                renderSceneButtons();
-            } else if (type === "RecordStateChanged") {
-                updateRecordUI(data.outputActive);
-            } else if (type === "StreamStateChanged") {
-                updateStreamUI(data.outputActive);
-            } else if (type === "InputMuteStateChanged" && data.inputName === "Mic/Aux") {
-                updateMicUI(data.inputMuted);
-            } else if (type === "InputVolumeChanged") {
-                const id = data.inputName === "Desktop Audio" ? "volDesktop" : (data.inputName === "Mic/Aux" ? "volMic" : null);
-                if (id) {
-                    document.getElementById(id).value = data.inputVolumeMul;
-                    document.getElementById(id + 'Val').textContent = Math.round(data.inputVolumeMul * 100) + '%';
-                }
-            }
-        }
-
-        function startStats() {
-            statsInterval = setInterval(async () => {
+        function startPreview() {
+            previewInterval = setInterval(async () => {
                 if (!connected) return;
                 try {
-                    const stats = await sendRequest("GetStats");
-                    document.getElementById('statFps').textContent = Math.round(stats.fps);
-                    document.getElementById('statCpu').textContent = stats.cpuUsage.toFixed(1) + '%';
-                    
-                    const stream = await sendRequest("GetStreamStatus");
-                    document.getElementById('statBitrate').textContent = stream.outputActive ? Math.round(stream.outputBytes / 1024) : 0;
-                } catch(e) {}
-            }, 2000);
+                    const res = await sendRequest("GetSourceScreenshot", {
+                        "sourceName": currentSceneName,
+                        "imageFormat": "jpeg",
+                        "imageWidth": 400
+                    });
+                    document.getElementById('scenePreview').src = res.imageData;
+                } catch (e) { }
+            }, 1000);
         }
 
-        function stopStats() {
-            clearInterval(statsInterval);
-            document.getElementById('statFps').textContent = '0';
-            document.getElementById('statCpu').textContent = '0%';
-            document.getElementById('statBitrate').textContent = '0';
-        }
+        function stopPreview() { clearInterval(previewInterval); }
 
-        function renderSceneButtons() {
+        function renderScenes(list, current) {
+            currentSceneName = current;
             const container = document.getElementById('sceneButtons');
-            container.innerHTML = '';
-            scenesList.forEach(scene => {
-                const btn = document.createElement('button');
-                btn.className = `scene-btn ${scene.sceneName === currentSceneName ? 'active' : ''}`;
-                btn.textContent = scene.sceneName;
-                btn.onclick = () => sendRequest("SetCurrentProgramScene", { "sceneName": scene.sceneName });
-                container.appendChild(btn);
+            if (list) {
+                container.innerHTML = '';
+                list.forEach(s => {
+                    const b = document.createElement('button');
+                    b.className = `scene-btn ${s.sceneName === current ? 'active' : ''}`;
+                    b.id = `scene-${s.sceneName.replace(/\s+/g, '-')}`;
+                    b.textContent = s.sceneName;
+                    b.onclick = () => {
+                        if (navigator.vibrate) navigator.vibrate(40);
+                        sendRequest("SetCurrentProgramScene", { "sceneName": s.sceneName });
+                    };
+                    container.appendChild(b);
+                });
+            } else {
+                document.querySelectorAll('.scene-btn').forEach(b => b.classList.remove('active'));
+                const active = document.getElementById(`scene-${current.replace(/\s+/g, '-')}`);
+                if (active) active.classList.add('active');
+            }
+        }
+
+        async function loadSources(sceneName) {
+            try {
+                const res = await sendRequest("GetSceneItemList", { "sceneName": sceneName });
+                const container = document.getElementById('sourceList');
+                container.innerHTML = '';
+                document.getElementById('sourceCount').textContent = `${res.sceneItems.length} items`;
+                res.sceneItems.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = `source-item ${item.sceneItemEnabled ? 'active' : ''}`;
+                    div.innerHTML = `
+                        <span>${item.sourceName}</span>
+                        <label class="switch">
+                            <input type="checkbox" ${item.sceneItemEnabled ? 'checked' : ''} 
+                                onchange="toggleSource('${sceneName}', ${item.sceneItemId}, this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (e) { }
+        }
+
+        async function toggleSource(scene, id, enabled) {
+            await sendRequest("SetSceneItemEnabled", {
+                "sceneName": scene, "sceneItemId": id, "sceneItemEnabled": enabled
             });
         }
 
-        function updateRecordUI(active) {
-            setBtnState('recordBtn', active);
-            document.getElementById('recordLabel').textContent = active ? 'Stop Record' : 'Start Record';
+        function renderTransitions(list, current) {
+            const s = document.getElementById('transSelect');
+            s.innerHTML = '';
+            list.forEach(t => {
+                const o = document.createElement('option');
+                o.value = t.transitionName;
+                o.textContent = t.transitionName;
+                o.selected = t.transitionName === current;
+                s.appendChild(o);
+            });
         }
 
-        function updateStreamUI(active) {
-            setBtnState('streamBtn', active, 'var(--primary)');
-            document.getElementById('streamLabel').textContent = active ? 'Stop Stream' : 'Start Stream';
+        function changeTransition(name) { sendRequest("SetCurrentSceneTransition", { "transitionName": name }); }
+
+        function mediaAction(action) {
+            if (navigator.vibrate) navigator.vibrate(30);
+            const mediaSource = document.querySelector('.source-item span')?.textContent || "Video";
+            sendRequest("TriggerMediaInputAction", { "inputName": mediaSource, "mediaAction": action.toUpperCase() })
+                .catch(() => showToast(`Source "${mediaSource}" not controllable`, 'error'));
         }
 
-        function updateMicUI(muted) {
-            setBtnState('micBtn', muted);
-            document.getElementById('micLabel').textContent = muted ? 'Unmute Mic' : 'Mute Mic';
+        function updateUI(id, active, label) {
+            const b = document.getElementById(id);
+            b.classList.toggle('active', active);
+            document.getElementById(id.replace('Btn', 'Label')).textContent = active ? `Stop ${label}` : label;
         }
 
-        // Actions
         async function toggleStreaming() { sendRequest("ToggleStream"); }
         async function toggleRecording() { sendRequest("ToggleRecord"); }
         async function toggleMute() { sendRequest("ToggleInputMute", { "inputName": "Mic/Aux" }); }
-        
-        async function ubahVolume(name, val) {
-            sendRequest("SetInputVolume", { "inputName": name, "inputVolumeMul": parseFloat(val) });
-            document.getElementById(name === 'Desktop Audio' ? 'volDesktopVal' : 'volMicVal').textContent = Math.round(val * 100) + '%';
+
+        function ubahVolume(n, v) {
+            sendRequest("SetInputVolume", { "inputName": n, "inputVolumeMul": parseFloat(v) });
+            document.getElementById(n === 'Mic/Aux' ? 'v2' : 'v1').textContent = Math.round(v * 100) + '%';
         }
 
-        async function gantiTeks() {
-            const t = document.getElementById('teksOverlay').value;
-            if (!t) return showToast('Enter text', 'error');
-            try {
-                await sendRequest("SetInputSettings", { "inputName": "TeksOverlay", "inputSettings": { "text": t } });
-                showToast('Text Updated');
-                document.getElementById('teksOverlay').value = '';
-            } catch(e) { showToast('Source "TeksOverlay" not found', 'error'); }
-        }
-
-        // To-Do Logic
         let todos = [];
         async function loadTodos() {
-            try {
-                const res = await fetch('todo-data.json?t=' + Date.now());
-                todos = await res.json();
-                renderTodos();
-            } catch (e) { todos = []; renderTodos(); }
+            try { const r = await fetch('todo-data.json?t=' + Date.now()); todos = await r.json(); renderTodos(); } catch (e) { renderTodos(); }
         }
-
-        async function saveTodos() {
+        function renderTodos() {
+            const c = document.getElementById('todoList');
+            c.innerHTML = '';
+            todos.forEach((t, i) => {
+                const d = document.createElement('div');
+                d.className = 'todo-item';
+                d.innerHTML = `<input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleT(${i})">
+                               <span style="flex:1; ${t.completed ? 'text-decoration:line-through; opacity:0.5' : ''}">${t.text}</span>
+                               <button onclick="delT(${i})" style="background:none; border:none; color:var(--danger); cursor:pointer;">×</button>`;
+                c.appendChild(d);
+            });
+        }
+        async function saveT() {
             await fetch('save-todo.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(todos) });
             renderTodos();
         }
-
-        function renderTodos() {
-            const container = document.getElementById('todoList');
-            container.innerHTML = todos.length ? '' : '<div style="color:var(--text-dim);text-align:center;padding:10px;">No tasks</div>';
-            todos.forEach((t, i) => {
-                const div = document.createElement('div');
-                div.className = `todo-item ${t.completed ? 'completed' : ''}`;
-                div.innerHTML = `
-                    <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleT(${i})">
-                    <span class="todo-text ${t.completed ? 'completed' : ''}">${t.text}</span>
-                    <button class="btn btn-danger btn-icon" onclick="delT(${i})">×</button>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function addTodo() {
-            const el = document.getElementById('todoInput');
-            if (el.value.trim()) { todos.push({ text: el.value.trim(), completed: false }); el.value = ''; saveTodos(); }
-        }
-
-        function delT(i) { todos.splice(i, 1); saveTodos(); }
-        function toggleT(i) { todos[i].completed = !todos[i].completed; saveTodos(); }
+        function addTodo() { const i = document.getElementById('todoInput'); if (i.value) { todos.push({ text: i.value, completed: false }); i.value = ''; saveT(); } }
+        function toggleT(i) { todos[i].completed = !todos[i].completed; saveT(); }
+        function delT(i) { todos.splice(i, 1); saveT(); }
 
         loadTodos();
     </script>
 </body>
+
 </html>
