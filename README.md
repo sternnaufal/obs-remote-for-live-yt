@@ -60,3 +60,8 @@ Perfect for tablets, smartphones, or secondary monitors during live streaming, p
 - **Backend**: PHP
 - **Protocol**: OBS WebSocket v5
 - **Storage**: JSON file
+
+
+---
+
+Dibuat oleh [Naufal Rakha Putra](https://www.naufalrakha.my.id) — lihat proyek lainnya di [naufalrakha.my.id](https://www.naufalrakha.my.id)
